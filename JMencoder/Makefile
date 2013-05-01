@@ -1,16 +1,24 @@
 CC = gcc
 CXX = g++
 CFLAGS = -Wall
-LDFLAGS = -lm
-INCLUDE = -I inc
+LDFLAGS = -lm -L /opt/cuda-5.0/lib64 -lcudart
 SOURCES = $(notdir $(wildcard src/*.c))
 #OBJECTS = $(SOURCES:.c=.o) 此语句同下
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 VPATH = src:inc
 CFLAGS += $(patsubst %, -I%, $(subst :, , $(VPATH)))
+NVCCFLAGS = $(patsubst %, -I%, $(subst :, , $(VPATH)))
+OBJECTS += cuda_h264.o
+
+
+
+
+NVCC = nvcc
+NVCCFLAGS += -arch=compute_11 -ccbin gcc-4.6
 
 ifeq ($(DEBUG), on)
 	CFLAGS += -g
+	NVCCFLAGS += -g
 endif
 .PHONY:all clean
 all:lencod
@@ -21,6 +29,10 @@ lencod:$(addprefix objs/, $(OBJECTS))
 objs/%.o:src/%.c
 	@[ -d objs ] || mkdir -p objs
 	$(CC) $< $(CFLAGS) -c -o $@
+
+objs/cuda_h264.o:src/cuda_h264.cu
+	@[ -d objs ] || mkdir -p objs
+	$(NVCC) $< -c $(NVCCFLAGS) -o objs/cuda_h264.o
 
 clean:
 	rm -r -f -v *.o lencod objs
