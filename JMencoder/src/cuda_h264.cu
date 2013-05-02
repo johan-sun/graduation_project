@@ -1,4 +1,6 @@
+#include<stdio.h>
 #include<cuda.h>
+#include<stdlib.h>
 #include "defines.h"
 #include "cuda_h264.h"
 
@@ -126,3 +128,47 @@ void quarter_filter(imgpel** imgY, int width, int height, imgpel** outY4)
 	cudaFree(d_outY4);
 }
 
+
+extern unsigned int* byte_abs;
+extern int byte_abs_range;//
+extern int* mvbits;
+extern int* refbits;
+texture<unsigned int, 1> byte_abs_texture_ref;
+texture<int,1> mvbits_texture_ref;
+texture<int,1> refbits_texture_ref;
+
+static unsigned int* g_byte_abs_on_device;
+static int * g_mvbits_on_device;
+static int * g_refbits_on_device;
+//this function mush be called after init_img init_motion_search
+
+
+#define CUDA_ERROR(err, do_what) cuda_h264_error(err, do_what, __FILE__, __LINE__)
+static cuda_h264_error(cudaError_t err, const char* do_what, const char* file, int line)
+{
+	fprintf(stderr, "in %s at %d line:when %s .For %s\n", file, line, do_what, cudaGetErrorString(err));
+	flush_dpb();
+	exit(EXIT_FAILURE);
+}
+extern "C" void cuda_init()
+{
+	cudaError_t err;
+	unsigned int * byte_abs_start = byte_abs - byte_abs_range/2;
+	cudaChannelFormatDesc byte_abs_format = 
+		cudaCreateChanelDesc(sizeof(*byte_abs), 0, 0, 0, cudaChannelFormatKindUnsigned);
+	size_t size_byte_abs = byte_abs_range * sizeof(*byte_abs);
+	size_t size_mvbits;
+	size_t size_refbits;
+
+	//byte_abs_texture_ref.addressMode[0] = cudaAddressModeClamp;//钳位寻址模式,超出寻址范围钳住最大或者最小！
+
+	if((err = codecudaMalloc(&g_byte_abs_on_device, size_byte_abs)) != cudaSuccess)
+		CUDA_ERROR(err, "alloc memory for device byte_abs");
+	//对于使用cudaMalloc获得device内存，第一遍了offset一定返回0
+	//cudaMemcpy(g_byte_abs_on_device, byte_abs_start, 
+
+	//使用tex1Dfetch(ref, x)摘取纹理
+	if((err = cudaBindTexture(NULL, &byte_abs_texture_ref, g_byte_abs_on_device, &byte_abs_format, size_byte_abs)) != cudaSuccess)
+		CUDA_ERROR(err, "bind texture for byte_abs");
+		
+}

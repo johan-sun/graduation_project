@@ -1048,7 +1048,7 @@ void encode_one_macroblock ()
   //loss如果开启，使用多次编码
   for (rerun=0; rerun<runs; rerun++)
   {
-    if (runs==2)
+	if (runs==2)
       input->rdopt= (rerun==0) ? 1 : 3;
     
     // reset chroma intra predictor to default
@@ -1139,22 +1139,22 @@ void encode_one_macroblock ()
               best_pdir  = 0;
               //cost代码当前16x16 mode_cost,cost加上最小运动代价得到16x16，16x8，8x16模式下的整个16x16的motion_cost
               cost      += bmcost[LIST_0];
-            }
+            }//
 
             //将img里面的变量比如mv,ref拷贝到enc_picture中
             assign_enc_picture_params(mode, best_pdir, block, enc_mb.list_offset[LIST_0], best_ref[LIST_0], best_ref[LIST_1], bslice);
 
             //以8x8块记录了各个模式的预测信息，每个分割的8x8相同
-             //best8x8fwref，存放了一个宏块4个8x8块在各个帧间预测模式下的前向参考帧
-             //至此完成了最佳参考帧的选择，所以这儿将最佳 参考帧的信息存储在这个数组中，在计算预测值的时候会引用
+            //best8x8fwref，存放了一个宏块4个8x8块在各个帧间预测模式下的前向参考帧
+            //至此完成了最佳参考帧的选择，所以这儿将最佳 参考帧的信息存储在这个数组中，在计算预测值的时候会引用
             //best8x8xxx[MODE][b8x8_in_b16x16_idx]
             //----- set reference frame and direction parameters -----
             //8x16
             if (mode==3)
             {
-              best8x8fwref [3][block  ] = best8x8fwref [3][  block+2] = best_ref[LIST_0];
-              best8x8pdir  [3][block  ] = best8x8pdir  [3][  block+2] = best_pdir;
-              best8x8bwref [3][block  ] = best8x8bwref [3][  block+2] = best_ref[LIST_1];
+              best8x8fwref [3][block] = best8x8fwref [3][block+2] = best_ref[LIST_0];
+              best8x8pdir  [3][block] = best8x8pdir  [3][block+2] = best_pdir;
+              best8x8bwref [3][block] = best8x8bwref [3][block+2] = best_ref[LIST_1];
             }
             //16x8
             else if (mode==2)
@@ -1165,9 +1165,9 @@ void encode_one_macroblock ()
             }
             else
             {
-              best8x8fwref [1][0] = best8x8fwref [1][1] = best8x8fwref [1][2] = best8x8fwref [1][3] = best_ref[LIST_0];
-              best8x8pdir  [1][0] = best8x8pdir  [1][1] = best8x8pdir  [1][2] = best8x8pdir  [1][3] = best_pdir;
-              best8x8bwref [1][0] = best8x8bwref [1][1] = best8x8bwref [1][2] = best8x8bwref [1][3] = best_ref[LIST_1];
+              best8x8fwref[1][0] = best8x8fwref[1][1] = best8x8fwref[1][2] = best8x8fwref[1][3] = best_ref[LIST_0];
+              best8x8pdir [1][0] = best8x8pdir [1][1] = best8x8pdir [1][2] = best8x8pdir [1][3] = best_pdir;
+              best8x8bwref[1][0] = best8x8bwref[1][1] = best8x8bwref[1][2] = best8x8bwref[1][3] = best_ref[LIST_1];
             }
             
             //--- set reference frames and motion vectors ---
