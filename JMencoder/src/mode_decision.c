@@ -1030,12 +1030,12 @@ void encode_one_macroblock ()
   double min_rate = 0, RDCost16 = DBL_MAX;
   
   
-  if(input->FMEnable == 1)//UMHexagonS
-  {
+  if(input->FMEnable == 1)
+  {//UMHexagonS
     decide_intrabk_SAD();
   }
-  else if (input->FMEnable ==2)//简化的UMHexagonS
-  {
+  else if (input->FMEnable ==2)
+  {//简化的UMHexagonS
     simplified_decide_intrabk_SAD();
   }
   
@@ -1060,7 +1060,7 @@ void encode_one_macroblock ()
 
 
     if (!intra)
-    {//帧间预测
+    {//若允许帧间预测
       //===== set direct motion vectors =====
       best_mode = 1;
       if (bslice)
@@ -1134,8 +1134,8 @@ void encode_one_macroblock ()
               // Determine prediction list based on mode cost
               determine_prediction_list(mode, bmcost, best_ref, &best_pdir, &cost, &bi_pred_me);
             }
-            else // if (not bslice)
-            {
+            else 
+            {// if (not bslice)
               best_pdir  = 0;
               //cost代码当前16x16 mode_cost,cost加上最小运动代价得到16x16，16x8，8x16模式下的整个16x16的motion_cost
               cost      += bmcost[LIST_0];
@@ -1381,7 +1381,7 @@ void encode_one_macroblock ()
         FindSkipModeMotionVector ();
     }
     else // if (!intra)
-    {
+    {//否则直接设置初始化min_cost为最大值
       min_cost = INT_MAX;
     }
 
@@ -1390,7 +1390,7 @@ void encode_one_macroblock ()
     //========= C H O O S E   B E S T   M A C R O B L O C K   M O D E =========
     //-------------------------------------------------------------------------
    if (input->rdopt)
-   {
+   {//开启rdopt
      // store_coding_state (cs_cm);    
     if (!inter_skip)
     {
@@ -1579,8 +1579,8 @@ void encode_one_macroblock ()
           img->nz_coeff[img->current_mb_nr][j][i] = gaaiMBAFF_NZCoeff[j][i]; 
 #endif
    }
-   else //rdopt off
-   {
+   else 
+   {//未开启rdopt
      tmp_8x8_flag = currMB->luma_transform_size_8x8_flag;	//save 8x8_flag
      tmp_no_mbpart = currMB->NoMbPartLessThan8x8Flag;		  //save no-part-less
      

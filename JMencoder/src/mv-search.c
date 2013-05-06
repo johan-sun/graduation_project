@@ -1035,8 +1035,8 @@ FastFullPelBlockMotionSearch (pel_t**   orig_pic,     // <--  not used
       //--- get motion vector cost ---
       cand_x = offset_x + spiral_search_x[pos];
       cand_y = offset_y + spiral_search_y[pos];
-      mcost  = *block_sad;
-      mcost += MV_COST (lambda_factor, 2, cand_x, cand_y, pred_mv_x, pred_mv_y);
+      mcost  = *block_sad + MV_COST(lambda_factor, 2, cand_x, cand_y, pred_mv_x, pred_mv_y);
+      //mcost += MV_COST (lambda_factor, 2, cand_x, cand_y, pred_mv_x, pred_mv_y);
       
       //--- check motion cost ---
       if (mcost < min_mcost)
@@ -3497,6 +3497,7 @@ PartitionMotionSearch (int    blocktype,
   int   bx = bx0[parttype][block8x8];
   
   //===== LOOP OVER REFERENCE FRAMES =====
+  //若P帧numlists=1 B帧=2
   for (list=0; list<numlists;list++)
   {
     for (ref=0; ref < listXsize[list+list_offset]; ref++)
