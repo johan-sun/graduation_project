@@ -1464,7 +1464,6 @@ int giRDOpt_B8OnlyFlag;
 int gaaiMBAFF_NZCoeff[4][12];
 #endif
 
-#define DEBUG_FILE
 #ifdef DEBUG_FILE
 FILE* g_debugFile;
 #include<assert.h>

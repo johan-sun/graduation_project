@@ -2877,6 +2877,10 @@ BlockMotionSearch (short     ref,           //!< reference idx
       pred_mv_x, pred_mv_y, &mv_x, &mv_y, search_range, min_mcost, lambda_factor);
     
   }
+  else if(input->FMEnable == 4)//cuda FS 
+  {
+	  //TODO 增加cuda 全搜索代码
+  }
   else
   {
 #ifndef _FAST_FULL_ME_
