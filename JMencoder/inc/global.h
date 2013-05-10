@@ -1465,11 +1465,7 @@ int gaaiMBAFF_NZCoeff[4][12];
 #endif
 
 #ifdef DEBUG_FILE
-FILE* g_debugFile;
 #include<assert.h>
-    #define dbg_init()  assert(g_debugFile = fopen("dbgfile.txt", "w"))
-    #define dbg(fmt, arg...) fprintf(g_debugFile, fmt, ##arg)
-    #define dbg_done() fclose(g_debugFile)
     #define dbg_begin(fmt, args...) \
     {\
         char tmp_buf[100];\
@@ -1480,14 +1476,11 @@ FILE* g_debugFile;
     #define dbg_end() \
         fclose(tmp_file);\
     }
-    #define dbg2(fmt, arg...) fprintf(tmp_file, fmt, ##arg)
+    #define dbg(fmt, arg...) fprintf(tmp_file, fmt, ##arg)
 #else
-    #define dbg_init()  (void*)0
-    #define dbg(fmt, arg...) (void*)0
-    #define dbg_done() (void*)0
     #define dbg_begin(fmt, args...) (void*)0
     #define dbg_end() (void*)0
-    #define dbg2(fmt, arg...) (void*) 0
+    #define dbg(fmt, arg...) (void*) 0
 #endif
 
 #endif

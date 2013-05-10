@@ -42,6 +42,7 @@
 
 #include <time.h>
 #include <sys/timeb.h>
+#include "cuda_h264.h"
 
 #define __DEBUG_MV__
 
@@ -2880,6 +2881,9 @@ BlockMotionSearch (short     ref,           //!< reference idx
   else if(input->FMEnable == 4)//cuda FS 
   {
 	  //TODO 增加cuda 全搜索代码
+	  min_mcost = cudaFastFullPelBlockMotionSearch(orig_pic, ref, list, pic_pix_x, pic_pix_y, blocktype,
+			  pred_mv_x, pred_mv_y, &mv_x, &mv_y, search_range,
+			  min_mcost, lambda_factor);
   }
   else
   {

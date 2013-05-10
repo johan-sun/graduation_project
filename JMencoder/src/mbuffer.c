@@ -401,6 +401,8 @@ StorablePicture* alloc_storable_picture(PictureStructure structure, int size_x, 
   s->coded_frame    = 0;
   s->MbaffFrameFlag = 0;
 
+  //addby syh used for cuda
+  cuda_alloc_device_imgY(&s->d_imgY);
   return s;
 }
 
@@ -526,7 +528,13 @@ void free_storable_picture(StorablePicture* p)
       free(p->mb_field);
       p->mb_field=NULL;
     }
-    
+  
+//addby syh this is used for cuda
+	if (p->d_imgY)
+	{
+		cuda_free_device_imgY(p->d_imgY);
+		p->d_imgY = NULL;
+	}
     free(p);
     p = NULL;
   }

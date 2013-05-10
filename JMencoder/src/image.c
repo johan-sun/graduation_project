@@ -332,6 +332,7 @@ int encode_one_frame (void)
 
   ReadOneFrame (FrameNumberInFile, input->infile_header,
                 input->img_width, input->img_height, input->img_width_cr, input->img_height_cr);
+  //TODO copy imgY_org to device
 
   PaddAutoCropBorders (input->img_width, input->img_height, img->width, img->height,
                        input->img_width_cr, input->img_height_cr, img->width_cr, img->height_cr);

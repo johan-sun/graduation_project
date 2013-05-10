@@ -136,7 +136,6 @@ int main(int argc,char **argv)
   int M,N,n,np,nb;           //Rate control
   int primary_disp = 0;
   int i;
-  dbg_init();
   giRDOpt_B8OnlyFlag = 0;
 
   p_dec = p_in = -1;
@@ -146,6 +145,8 @@ int main(int argc,char **argv)
   frame_statistic_start = 1;
 
   Configure (argc, argv);
+  
+  //TODO validate argument for cuda
 
   Init_QMatrix();
 
@@ -221,6 +222,8 @@ int main(int argc,char **argv)
   Init_Motion_Search_Module ();
 
   information_init();
+
+  //TODO add function to init cuda motion search
 
   //Rate control 
   if(input->RCEnable)
@@ -377,7 +380,10 @@ int main(int argc,char **argv)
     else
       img->layer = 1;
 
+	//TODO add function before encode one frame for cuda prepare.
     encode_one_frame(); // encode one I- or P-frame
+	//TODO add function after encode one frame for cuda free
+	
     if (img->type == I_SLICE && input->EnableOpenGOP)
       img->last_valid_reference = img->ThisPOC;
 
@@ -423,6 +429,8 @@ int main(int argc,char **argv)
   // report everything
   report();
 
+  //TODO free memory on device
+
   free_picture (frame_pic_1);
   
   if (input->RDPictureDecision)
@@ -447,7 +455,6 @@ int main(int argc,char **argv)
   free_context_memory ();
   FreeNalPayloadBuffer();
   FreeParameterSets();
-  dbg_done();
   return 0;                         //encode JM73_FME version
 }
 /*!

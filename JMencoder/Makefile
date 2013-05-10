@@ -1,7 +1,8 @@
 CC = gcc
 CXX = g++
 CFLAGS = -Wall
-LDFLAGS = -lm -L /opt/cuda-5.0/lib64 -lcudart
+CUDA_ROOT = /opt/cuda-5.0
+LDFLAGS = -lm #-L /opt/cuda-5.0/lib64 -lcudart
 SOURCES = $(notdir $(wildcard src/*.c))
 #OBJECTS = $(SOURCES:.c=.o) 此语句同下
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
@@ -10,6 +11,7 @@ CFLAGS += $(patsubst %, -I%, $(subst :, , $(VPATH)))
 NVCCFLAGS = $(patsubst %, -I%, $(subst :, , $(VPATH)))
 OBJECTS += cuda_h264.o
 
+arch = $(shell uname -m)
 
 
 
@@ -20,6 +22,18 @@ ifeq ($(DEBUG), on)
 	CFLAGS += -g
 	NVCCFLAGS += -g
 endif
+
+ifeq ($(arch), x86_64)
+	LDFLAGS += -L $(CUDA_ROOT)/lib64 -lcudart
+else
+	LDFLAGS += -L $(CUDA_ROOT)/lib -lcudart
+endif
+
+ifeq ($(CUDA_ROOT), )
+	CUDA_ROOT = /opt/cuda-5.0
+endif
+
+
 .PHONY:all clean
 all:lencod
 	

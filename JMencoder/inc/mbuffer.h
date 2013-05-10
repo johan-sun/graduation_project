@@ -16,6 +16,9 @@
 #define _MBUFFER_H_
 
 #define MAX_LIST_SIZE 33
+//Ç°ÏòÉùÃ÷
+struct cudaArray;
+typedef struct cudaArray* cudaArray_t;
 
 //! definition a picture (field or frame)
 typedef struct storable_picture
@@ -47,6 +50,7 @@ typedef struct storable_picture
   int         MbaffFrameFlag;
 
   imgpel **   imgY;          //!< Y picture component
+  cudaArray_t d_imgY;   //!< Y pciture cuda array on device <<<CUDA>>>
   imgpel *    imgY_11;       //!< Y picture component with padded borders
   imgpel *    imgY_11_w;     //!< Y picture component with padded borders for weighted prediction
   imgpel **   imgY_ups;      //!< Y picture component upsampled (Quarter pel)
