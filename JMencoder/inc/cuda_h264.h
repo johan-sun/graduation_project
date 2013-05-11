@@ -5,6 +5,7 @@
 
 #define imgpel unsigned short
 #define pel_t imgpel
+#define DEBUG_FILE
 
 #ifdef __CUDACC__
 extern "C"

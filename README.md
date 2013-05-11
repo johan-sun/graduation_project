@@ -24,4 +24,5 @@ my graduation project of improve JM encoder by using cuda
 	* main function line 226, add function to init cuda motion search
 	* main function line 383, add callback before encode one frame
 	* main function line 385, add callback after encode one frame
-
+* configfile.h
+	* alter max bound of FME at line 211 (old 3.0 new 4.0)

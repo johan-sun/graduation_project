@@ -53,7 +53,7 @@
 #include "mb_access.h"
 #include "output.h"
 #include "cabac.h"
-
+#include "cuda_h264.h"
 extern pic_parameter_set_rbsp_t *PicParSet[MAXPPS];
 
 void code_a_picture(Picture *pic);
@@ -332,7 +332,7 @@ int encode_one_frame (void)
 
   ReadOneFrame (FrameNumberInFile, input->infile_header,
                 input->img_width, input->img_height, input->img_width_cr, input->img_height_cr);
-  //TODO copy imgY_org to device
+  cuda_copy_one_frame_and_bind_texture(imgY_org[0],input->img_width,input->img_height);//TODO copy imgY_org to device
 
   PaddAutoCropBorders (input->img_width, input->img_height, img->width, img->height,
                        input->img_width_cr, input->img_height_cr, img->width_cr, img->height_cr);
@@ -1673,16 +1673,16 @@ void UnifiedOneForthPix (StorablePicture *s)
            img->frame_num,
            (time_end.time*1000 + time_end.millitm)-
            (time_start.time*1000 + time_start.millitm) );
-#ifdef DEBUG_FILE
+/*#ifdef DEBUG_FILE
     dbg_begin("dbg_imgY_ups_frame_%d.txt", img->frame_num)
     {
         for(i = 0; i < 4*(s->size_y + 2*IMG_PAD_SIZE); ++i)
         {
             for(j = 0; j < 4*(s->size_x + 2*IMG_PAD_SIZE); ++j)
             {
-                dbg2("%d\t", out4Y[i][j]);
+                dbg("%d\t", out4Y[i][j]);
             }
-            dbg2("\n");
+            dbg("\n");
         }
     }
     dbg_end();
@@ -1692,8 +1692,8 @@ void UnifiedOneForthPix (StorablePicture *s)
         for(i = 0; i < s->size_y; ++i)
         {
             for(j = 0; j < s->size_x; ++j)
-                dbg2("%d\t", ref11[i*s->size_x + j]);
-            dbg2("\n");
+                dbg("%d\t", ref11[i*s->size_x + j]);
+            dbg("\n");
         }
     }
     dbg_end();
@@ -1708,7 +1708,7 @@ void UnifiedOneForthPix (StorablePicture *s)
         }
     }
     dbg_end();
-#endif
+#endif*/
 
 }
 

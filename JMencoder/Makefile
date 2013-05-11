@@ -16,11 +16,11 @@ arch = $(shell uname -m)
 
 
 NVCC = nvcc
-NVCCFLAGS += -arch=compute_11 -ccbin gcc-4.6
+NVCCFLAGS += -gencode arch=compute_11,code=sm_11 -ccbin gcc-4.6
 
 ifeq ($(DEBUG), on)
 	CFLAGS += -g
-	NVCCFLAGS += -g
+	NVCCFLAGS += -g -G
 endif
 
 ifeq ($(arch), x86_64)
@@ -46,7 +46,7 @@ objs/%.o:src/%.c
 
 objs/cuda_h264.o:src/cuda_h264.cu
 	@[ -d objs ] || mkdir -p objs
-	$(NVCC) $< -c $(NVCCFLAGS) -o objs/cuda_h264.o
+	$(NVCC) $(NVCCFLAGS) $< -c  -o objs/cuda_h264.o
 
 clean:
 	rm -r -f -v *.o lencod objs

@@ -208,7 +208,7 @@ Mapping Map[] = {
     {"ScalingListPresentFlag7",  &configinput.ScalingListPresentFlag[7],    0,   0.0,                       1,  0.0,              3.0              },
 
     // Fast ME enable
-    {"UseFME",                   &configinput.FMEnable,                     0,   0.0,                       1,  0.0,              3.0              },
+    {"UseFME",                   &configinput.FMEnable,                     0,   0.0,                       1,  0.0,              4.0 /*3.0->4.0*/             },
     {"EPZSPattern",              &configinput.EPZSPattern,                  0,   2.0,                       1,  0.0,              3.0              },
     {"EPZSDualRefinement",       &configinput.EPZSDual,                     0,   3.0,                       1,  0.0,              4.0              },
     {"EPZSFixedPredictors",      &configinput.EPZSFixed,                    0,   2.0,                       1,  0.0,              2.0              },

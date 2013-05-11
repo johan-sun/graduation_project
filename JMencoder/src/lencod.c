@@ -67,7 +67,7 @@
 #include "ratectl.h"
 #include "explicit_gop.h"
 #include "epzs.h"
-
+#include "cuda_h264.h"
 #define JM      "10 (FRExt)"
 #define VERSION "10.2"
 #define EXT_VERSION "(FRExt)"
@@ -146,7 +146,7 @@ int main(int argc,char **argv)
 
   Configure (argc, argv);
   
-  //TODO validate argument for cuda
+  cuda_validate_arguments();//cuda validate arguments
 
   Init_QMatrix();
 
@@ -223,7 +223,7 @@ int main(int argc,char **argv)
 
   information_init();
 
-  //TODO add function to init cuda motion search
+  cuda_init_motion_search_module();//TODO add function to init cuda motion search
 
   //Rate control 
   if(input->RCEnable)
@@ -380,9 +380,9 @@ int main(int argc,char **argv)
     else
       img->layer = 1;
 
-	//TODO add function before encode one frame for cuda prepare.
+	cuda_begin_encode_frame();//TODO add function before encode one frame for cuda prepare.
     encode_one_frame(); // encode one I- or P-frame
-	//TODO add function after encode one frame for cuda free
+	cuda_end_encode_frame();//TODO add function after encode one frame for cuda free
 	
     if (img->type == I_SLICE && input->EnableOpenGOP)
       img->last_valid_reference = img->ThisPOC;
@@ -429,7 +429,7 @@ int main(int argc,char **argv)
   // report everything
   report();
 
-  //TODO free memory on device
+  cuda_free();//TODO free memory on device
 
   free_picture (frame_pic_1);
   

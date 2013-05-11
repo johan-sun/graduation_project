@@ -1477,10 +1477,12 @@ int gaaiMBAFF_NZCoeff[4][12];
         fclose(tmp_file);\
     }
     #define dbg(fmt, arg...) fprintf(tmp_file, fmt, ##arg)
+	#define dbgt(fmt, arg...) do {printf(fmt, ##arg); fflush(stderr);}while(0)
 #else
     #define dbg_begin(fmt, args...) (void*)0
     #define dbg_end() (void*)0
     #define dbg(fmt, arg...) (void*) 0
+	#define dbgt(fmt, arg...) (void*)0
 #endif
 
 #endif
