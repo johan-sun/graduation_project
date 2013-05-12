@@ -421,33 +421,6 @@ extern "C" void cuda_init_motion_search_module()
 	CUDA_CHECK("bind byte abs texture",
 			cudaBindTexture(NULL, &g_tex_ref_byte_abs, gd_byte_abs, &g_tex_ref_byte_abs.channelDesc, byte_abs_size));
 
-	//TODO dbg
-	dbg_begin("byte_abs_from_jm86.table")
-	{
-		for(int i = 0; i < BYTE_ABS_TEST_MAX; ++i)
-		{
-			dbg("abs(%d)=%d\n", i, byte_abs[i]);
-			dbg("abs(%d)=%d\n", -i, byte_abs[-i]);
-		}
-	}
-	dbg_end();
-
-	//TODO dbg
-	dbg_begin("byte_abs.table")
-	{//测试绝对值表
-		int* d_out;
-		CUDA_CHECK("alloc d_out", cudaMalloc(&d_out,sizeof(int) * BYTE_ABS_TEST_MAX));
-		int* h_out = (int*)malloc(BYTE_ABS_TEST_MAX * sizeof(int));
-		dbg_byte_abs_test<<<1,1>>>(d_out);
-		CUDA_CHECK("copy d_out", cudaMemcpy(h_out,d_out,sizeof(int)*BYTE_ABS_TEST_MAX,cudaMemcpyDeviceToHost));
-		for(int i = 0; i < BYTE_ABS_TEST_MAX; ++i)
-		{
-			dbg("abs(%d)=%d\n", -i, h_out[i]);
-		}
-	}
-	dbg_end();
-
-
 	cuda_init_blockSAD(img->max_num_references, g_max_search_points, img_width, img_height);
 	cuda_init_addup_idx();
 
