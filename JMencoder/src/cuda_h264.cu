@@ -182,7 +182,6 @@ static void cuda_init_blockSAD(int max_num_references, int max_search_points, in
 	int mb_count = (img_width/16) * (img_height / 16);
 	int width_in_bytes = max_search_points*sizeof(int);
 	struct cudaExtent block3DExtent = make_cudaExtent(width_in_bytes,BLOCK_TYPE_SAD_COUNT,mb_count);
-	dbgt("cudaExtend {w=%d(mv pos), h=%d(block idx), d=%d(mb)}\n", block3DExtent.width, block3DExtent.height, block3DExtent.depth);
 
 	if((g_blockSAD = (cudaPitchedPtr*)calloc(sizeof(cudaPitchedPtr), max_num_references)) == NULL)
 		no_mem_exit("alloc cudaPitchPtr in host");
@@ -190,7 +189,6 @@ static void cuda_init_blockSAD(int max_num_references, int max_search_points, in
 	for(int i = 0; i < max_num_references; ++i)
 	{
 		CUDA_CHECK("alloc 3d blockSAD in device",cudaMalloc3D(&g_blockSAD[i],block3DExtent));
-		if(i == 0) dbgt("--xsize=%d, ysize=%d, pitch=%d\n",g_blockSAD[i].xsize, g_blockSAD[i].ysize, g_blockSAD[i].pitch);
 	}
 }
 
@@ -291,9 +289,6 @@ static void cuda_dump_ref_imgY_for_texture(const char* filename)
 
 static void get_mean_mvs(int max_mb_nr, int mb_in_width, int** mvs, StorablePicture* refpic)
 {
-	dbgt("get_mean_mvs max_mb_nr = %d\n", max_mb_nr);
-	dbg_begin("get_mean_mvs")
-	{
 	for(int i = 0; i < max_mb_nr; ++i)
 	{
 		int meanx = 0; 
@@ -306,20 +301,15 @@ static void get_mean_mvs(int max_mb_nr, int mb_in_width, int** mvs, StorablePict
 			int b4y = ybase + j/4;
 			meanx += refpic->mv[0][b4y][b4x][0];
 			meany += refpic->mv[0][b4y][b4x][1];
-			dbg("mb idx = %d, b4x4 idx = %d mv = (%d, %d)\n", i, j, refpic->mv[0][b4y][b4x][0], refpic->mv[0][b4y][b4x][1]);
 		}
 		mvs[i][0] = meanx/16;
 		mvs[i][1] = meany/16;
-		dbg("*mb idx = %d, mean mv = (%d, %d)\n", i, meanx/16, meany/16);
 	}
-	}dbg_end();
-	cuda_dump_mv_mean(mvs[0], "inner_get_mean_mvs");
 }
 
 //Test passed
 extern "C" void cuda_copy_one_frame_and_bind_texture(imgpel* imgY,int width, int height)
 {
-	dbgt("cuda copy one frame enter\n");
 	CUDA_CHECK("copy imgY", 
 			cudaMemcpy2DToArray(gd_imgY_org_arr,0,0,imgY,width*sizeof(imgpel),width*sizeof(imgpel),height,cudaMemcpyHostToDevice));
 	g_tex_ref_imgY_src.addressMode[0] = g_tex_ref_imgY_src.addressMode[1] = cudaAddressModeClamp;
@@ -476,7 +466,6 @@ extern "C" void cuda_init_motion_search_module()
 	CUDA_CHECK("alloc device mvcost",cudaMalloc(&gd_mvcost,sizeof(int)*g_block_need_rounded_for_find_min_sad));
 	CUDA_CHECK("alloc device mv_pos", cudaMalloc(&gd_mv_pos, sizeof(int)*g_block_need_rounded_for_find_min_sad));
 
-	//dbgt("init::max_mb_nr=%d\n", g_max_macroblock_nr);
 	get_mem3Dint(&g_mv_mean_of_mb,img->max_num_references, g_max_macroblock_nr,2);
 
 	cudaChannelFormatDesc mv_mean_desc = cudaCreateChannelDesc<int>();
@@ -674,17 +663,9 @@ static void cuda_setup_block4x4(int list, int ref)
 			"bind refrences imgY to texture",
 			cudaBindTextureToArray(&g_tex_ref_imgY_ref,listX[list][ref]->d_imgY,&g_tex_ref_imgY_ref.channelDesc)
 			);//绑定reference 纹理
-	//测试
-	/*
-	cuda_dump_ref_imgY_for_texture("ref_imgY_texture");
-	cuda_dump_imgY(listX[list][ref]->imgY[0], img->width, img->height, "ref_imgY_mem");
-	cuda_dump_src_imgY_for_texture("src_imgY_texture");
-	cuda_dump_imgY(imgY_org[0], img->width, img->height, "src_imgY_men");
-	*/
 
 	//获取mb 的mean mv 并拷贝到数组绑定纹理
 	get_mean_mvs(g_max_macroblock_nr, img->width/16, g_mv_mean_of_mb[ref], listX[list][ref]);
-	//cuda_dump_mv_mean(g_mv_mean_of_mb[ref][0], "mv_mean_mem");
 	CUDA_CHECK("copy mv mean array",
 			cudaMemcpy2DToArray(gd_mv_mean_of_mb, 0, 0,
 				g_mv_mean_of_mb[ref][0],sizeof(int)*2,sizeof(int)*2,
@@ -694,7 +675,6 @@ static void cuda_setup_block4x4(int list, int ref)
 	CUDA_CHECK("bind texture of mv means",
 			cudaBindTextureToArray(&g_tex_ref_mv_mean_of_mb,gd_mv_mean_of_mb,&g_tex_ref_mv_mean_of_mb.channelDesc)
 			);
-	//cuda_mv_mean_of_mv_texture_test("mv_mean_texture");
 
 	dim3 dim_block(ThreadPerBlock/16,16);
 	int block4x4_total = (img->width/4) * (img->height/4);
@@ -704,15 +684,12 @@ static void cuda_setup_block4x4(int list, int ref)
 	//kernel之间是串行执行的
 	cuda_setup4x4_block_sad<<<block_need_rounded,dim_block>>>(g_blockSAD[ref]);
 
-	/*
 	//TODO 
 	dbg_begin("block_sad_gpu.txt")
 	{
 		static int *h_block_sad = NULL;
 		int pitch = g_blockSAD[0].pitch;
-		dbgt("pitch = %d\n", pitch);
 		int ysize = g_blockSAD[0].ysize;
-		dbgt("ysize = %d\n", ysize);
 		size_t slice_pitch = pitch*ysize;
 		if(h_block_sad == NULL)
 		{
@@ -737,7 +714,6 @@ static void cuda_setup_block4x4(int list, int ref)
 	}
 	dbg_end();
 #undef Ele3D
-*/
 }
 
 static void cuda_setup_block4x4_cpu(int list, int ref)
@@ -842,7 +818,6 @@ cudaFastFullPelBlockMotionSearch(pel_t**   orig_pic,     // <--  not used
 		cuda_addup_large_blocks<<<g_max_macroblock_nr,41>>>(g_blockSAD[ref], mb_idx, _d_syn__);
 		CUDA_CHECK("copy test syn search setup done", cudaMemcpy(&_h_syn__,_d_syn__,sizeof(int),cudaMemcpyDeviceToHost));
 		CUDA_CHECK("free test syn search setup done", cudaFree(_d_syn__));
-		dbgt("_h_syn__ = %d\n", _h_syn__);
 
 	//获得最小mcost与运动矢量
 	
