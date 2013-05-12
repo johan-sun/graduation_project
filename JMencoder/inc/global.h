@@ -1467,6 +1467,7 @@ int gaaiMBAFF_NZCoeff[4][12];
 #ifdef DEBUG_FILE
 #include<assert.h>
     #define dbg_begin(fmt, args...) \
+	do\
     {\
         char tmp_buf[100];\
         FILE* tmp_file;\
@@ -1475,7 +1476,7 @@ int gaaiMBAFF_NZCoeff[4][12];
 
     #define dbg_end() \
         fclose(tmp_file);\
-    }
+    }while(0)
     #define dbg(fmt, arg...) fprintf(tmp_file, fmt, ##arg)
 	#define dbgt(fmt, arg...) do {printf(fmt, ##arg); fflush(stderr);}while(0)
 #else
