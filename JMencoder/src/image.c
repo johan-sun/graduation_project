@@ -1471,21 +1471,9 @@ void UnifiedOneForthPix (StorablePicture *s)
   //clock_t start_time, end_time;
   // don't upsample twice
 
-#ifdef WIN32
-  struct __timeb time_start;
-  struct __timeb time_end;
-#else
-  struct timeb time_start;
-  struct timeb time_end;
-#endif
   if (s->imgY_ups || s->imgY_11)
     return;
 
-#ifdef WIN32
-  _ftime(&time_start);
-#else
-  ftime(&time_start);
-#endif
 
   s->imgY_11 = malloc ((s->size_x * s->size_y) * sizeof (imgpel));
   if (NULL == s->imgY_11)
@@ -1664,52 +1652,6 @@ void UnifiedOneForthPix (StorablePicture *s)
     // Generate 1/1th pel representation (used for integer pel MV search)
     //why not copy from imgY
     GenerateFullPelRepresentation (out4Y, ref11, s->size_x, s->size_y);
-#ifdef WIN32
-    _ftime(&time_end);
-#else
-    ftime(&time_end);
-#endif
-    printf("[frame %d generate 1/4 pel in %d ms]\n",
-           img->frame_num,
-           (time_end.time*1000 + time_end.millitm)-
-           (time_start.time*1000 + time_start.millitm) );
-/*#ifdef DEBUG_FILE
-    dbg_begin("dbg_imgY_ups_frame_%d.txt", img->frame_num)
-    {
-        for(i = 0; i < 4*(s->size_y + 2*IMG_PAD_SIZE); ++i)
-        {
-            for(j = 0; j < 4*(s->size_x + 2*IMG_PAD_SIZE); ++j)
-            {
-                dbg("%d\t", out4Y[i][j]);
-            }
-            dbg("\n");
-        }
-    }
-    dbg_end();
-
-    dbg_begin("dbg_imgY11_frame_%d.txt", img->frame_num)
-    {
-        for(i = 0; i < s->size_y; ++i)
-        {
-            for(j = 0; j < s->size_x; ++j)
-                dbg("%d\t", ref11[i*s->size_x + j]);
-            dbg("\n");
-        }
-    }
-    dbg_end();
-
-    dbg_begin("dbg_imY_frame_%d.txt", img->frame_num)
-    {
-        for(i = 0; i < s->size_y; ++i)
-        {
-            for(j = 0; j < s->size_x; ++j)
-                dbg2("%d\t", s->imgY[i][j]);
-            dbg2("\n");
-        }
-    }
-    dbg_end();
-#endif*/
-
 }
 
 

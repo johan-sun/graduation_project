@@ -74,7 +74,7 @@ enum {
 #define NUM_BLOCK_TYPES 10
 
 
-#define _FAST_FULL_ME_
+//#define _FAST_FULL_ME_
 
 #define _FULL_SEARCH_RANGE_
 #define _ADAPT_LAST_GROUP_

@@ -16,7 +16,6 @@ extern "C"
 }
 
 
-
 #define ThreadPerBlock 256
 
 
@@ -58,6 +57,7 @@ texture<short, 1> g_tex_ref_spiral_search_x;//i
 texture<short, 1> g_tex_ref_spiral_search_y;//i
 texture<imgpel, 2> g_tex_ref_imgY_src;//iu 
 texture<imgpel, 2> g_tex_ref_imgY_ref;// cu 
+//
 texture<int, 2> g_tex_ref_addup_sad_index;//i
 texture<int, 2> g_tex_ref_mv_mean_of_mb;//cu
 
@@ -103,6 +103,44 @@ static void cuda_h264_error(cudaError_t err, const char* do_what, const char* fi
 	fprintf(stderr, "in %s at %d line:when %s .For %s\n", file, line, do_what, cudaGetErrorString(err));
 	flush_dpb();
 	exit(EXIT_FAILURE);
+}
+
+__global__ void addup_sad_index_test(int * d_out)
+{
+	for(int bidx = 0; bidx < BLOCK_TYPE_SAD_COUNT; ++bidx)
+	{
+		for(int i = 0; i < 16; ++i)
+		{
+			d_out[bidx*16 + i] = tex2D(g_tex_ref_addup_sad_index, i, bidx);
+		}
+	}
+}
+
+static void addup_sad_index_test_case()
+{
+	int* d_out;
+	cudaMalloc(&d_out,sizeof(int)*16 * BLOCK_TYPE_SAD_COUNT);
+	int* h_out = (int*)malloc(sizeof(int)*16*BLOCK_TYPE_SAD_COUNT);
+	addup_sad_index_test<<<1,1>>>(d_out);
+	cudaMemcpy(h_out,d_out,sizeof(int)*16*BLOCK_TYPE_SAD_COUNT,cudaMemcpyDeviceToHost);
+	for(int b = 0; b < BLOCK_TYPE_SAD_COUNT; ++b)
+	{
+		for(int i = 0; i < 16; ++i)
+		{
+			dbgt("%3d", h_out[b*16+i]);
+		}
+		dbgt("\n");
+	}
+
+	dbgt("src in mem idx\n");
+	for(int b = 0; b < BLOCK_TYPE_SAD_COUNT; ++b)
+	{
+		for(int i = 0; i < 16; ++i)
+		{
+			dbgt("%3d", g_addup_index[b][i]);
+		}
+		dbgt("\n");
+	}
 }
 
 static void cuda_init_addup_idx()
@@ -167,20 +205,23 @@ static void cuda_init_addup_idx()
 		g_addup_index[40][i] = i;
 
 	cudaChannelFormatDesc arr_desc = cudaCreateChannelDesc<int>();
-	CUDA_CHECK("alloc addup array", cudaMallocArray(&gd_addup_sad_index,&arr_desc,16,41,cudaArrayTextureGather));
+	CUDA_CHECK("alloc addup array", cudaMallocArray(&gd_addup_sad_index,&arr_desc,16,BLOCK_TYPE_SAD_COUNT,cudaArrayTextureGather));
 	CUDA_CHECK("copy addup array to device",
-			cudaMemcpy2DToArray(gd_addup_sad_index,0,0,g_addup_index,16*sizeof(int),16*sizeof(int),41,cudaMemcpyHostToDevice));
+			cudaMemcpy2DToArray(gd_addup_sad_index,0,0,&g_addup_index[0][0],16*sizeof(int),16*sizeof(int),
+				BLOCK_TYPE_SAD_COUNT,cudaMemcpyHostToDevice));
 	g_tex_ref_addup_sad_index.normalized = false;
 	CUDA_CHECK("bind texture of addup table",
 			cudaBindTextureToArray(&g_tex_ref_addup_sad_index,gd_addup_sad_index,&g_tex_ref_addup_sad_index.channelDesc)
 			);
+
+	//addup_sad_index_test_case();
 #undef zero_idx
 }
 
 static void cuda_init_blockSAD(int max_num_references, int max_search_points, int img_width, int img_height)
 {
 	int mb_count = (img_width/16) * (img_height / 16);
-	int width_in_bytes = max_search_points*sizeof(int);
+	int width_in_bytes = max_search_points*sizeof(short);
 	struct cudaExtent block3DExtent = make_cudaExtent(width_in_bytes,BLOCK_TYPE_SAD_COUNT,mb_count);
 
 	if((g_blockSAD = (cudaPitchedPtr*)calloc(sizeof(cudaPitchedPtr), max_num_references)) == NULL)
@@ -212,8 +253,7 @@ static void cuda_dump_imgY(imgpel* imgY,int width, int height, const char* dumpf
 __global__ void tex_ref_imgY_src_test(imgpel* d_out)
 {
 	for(int x = 0; x < gd_picture_width_in_pel; ++ x)
-		for(int y = 0; y < gd_picture_height_in_pel; ++y)
-		{
+		for(int y = 0; y < gd_picture_height_in_pel; ++y) {
 			d_out[y * gd_picture_width_in_pel + x] = tex2D(g_tex_ref_imgY_src, x, y);
 		}
 }
@@ -263,6 +303,7 @@ static void cuda_mv_mean_of_mv_texture_test(const char* filename)
 	free(h_out);
 }
 
+//TODO delete debug code
 static void cuda_dump_src_imgY_for_texture(const char* filename)
 {
 	imgpel* d_imgY;
@@ -275,6 +316,7 @@ static void cuda_dump_src_imgY_for_texture(const char* filename)
 	free(h_imgY);
 }
 
+//TODO delete debug code
 static void cuda_dump_ref_imgY_for_texture(const char* filename)
 {
 	imgpel* d_imgY;
@@ -307,7 +349,6 @@ static void get_mean_mvs(int max_mb_nr, int mb_in_width, int** mvs, StorablePict
 	}
 }
 
-//Test passed
 extern "C" void cuda_copy_one_frame_and_bind_texture(imgpel* imgY,int width, int height)
 {
 	CUDA_CHECK("copy imgY", 
@@ -317,18 +358,6 @@ extern "C" void cuda_copy_one_frame_and_bind_texture(imgpel* imgY,int width, int
 	CUDA_CHECK("bind imgY texture",
 			cudaBindTextureToArray(&g_tex_ref_imgY_src,gd_imgY_org_arr,&g_tex_ref_imgY_src.channelDesc)
 			);
-}
-
-
-
-//TODO delete debug code
-#define BYTE_ABS_TEST_MAX 1000
-__global__ void dbg_byte_abs_test(int* d_out)
-{
-	for(int i = 0; i < BYTE_ABS_TEST_MAX; ++i)
-	{
-		d_out[i] = CUDA_Byte_ABS(-i);
-	}
 }
 
 //初始化cuda motion search
@@ -422,6 +451,7 @@ extern "C" void cuda_init_motion_search_module()
 			cudaBindTexture(NULL, &g_tex_ref_byte_abs, gd_byte_abs, &g_tex_ref_byte_abs.channelDesc, byte_abs_size));
 
 	cuda_init_blockSAD(img->max_num_references, g_max_search_points, img_width, img_height);
+	
 	cuda_init_addup_idx();
 
 	cudaChannelFormatDesc desc = cudaCreateChannelDesc<imgpel>();
@@ -531,7 +561,7 @@ __global__ void cuda_setup4x4_block_sad(cudaPitchedPtr block_sad_ptr)
 		int src_y = mb_idx / gd_picture_width_in_mb * 16 + b4y_offset;
 		int search_center_x = tex2D(g_tex_ref_mv_mean_of_mb, 0, mb_idx) + src_x + CUDA_Spiral_Search_X(mvpos_idx);
 		int search_center_y = tex2D(g_tex_ref_mv_mean_of_mb, 1, mb_idx) + src_y + CUDA_Spiral_Search_Y(mvpos_idx);
-		int sad = 0;
+		unsigned short sad = 0;
 		for(int y = 0; y < 4; ++y)
 		{
 			for(int x = 0; x < 4; ++x)
@@ -542,33 +572,80 @@ __global__ void cuda_setup4x4_block_sad(cudaPitchedPtr block_sad_ptr)
 			}
 
 		}
-		CUDA_3D_Element(int, block_sad_ptr, mvpos_idx, BlockOffset4x4+b4x4idx, mb_idx) = sad;
+		CUDA_3D_Element(unsigned short, block_sad_ptr, mvpos_idx, BlockOffset4x4+b4x4idx, mb_idx) = sad;
 	}
 }
 
 //一个Block对应一个MB 41 thread
-__global__ void cuda_addup_large_blocks(cudaPitchedPtr block_sad_ptr, int mb_idx, int* d_test)
+//gird (mb_max*search_range)
+__global__ void cuda_addup_large_block_sads(cudaPitchedPtr block_sad_ptr)
 {
-	int tid = threadIdx.x;
+	int bidx = threadIdx.x;
+	int pos_start = gridDim.y * blockIdx.y;
+	int pos_end = pos_start + gridDim.y;
+	int mb_idx = blockIdx.x;
+	int sad;
 	__shared__ int sad_cache[17];
-	sad_cache[16] = 0;
-	int sad = 0;
-	if(tid == 0)
-		*d_test = 2007342;
-	for(int i = 0; i < gd_max_search_pos_nr; ++i)
+	if(bidx == 0) sad_cache[16] = 0;
+	for(int pos = pos_start; pos < pos_end; ++pos)
 	{
-		if(tid < 16)
-			sad_cache[tid] = CUDA_3D_Element(int, block_sad_ptr, i, tid, mb_idx);
-		__syncthreads();//同步sad读取
-		for(int j = 0; j < 16; ++i)
+		sad = 0;
+		if(bidx < 16)
+			sad_cache[bidx] = CUDA_3D_Element(unsigned short, block_sad_ptr, pos, bidx, mb_idx);
+		__syncthreads();
+		for(int i = 0; i < 16; ++i)
 		{
-			sad += sad_cache[tex2D(g_tex_ref_addup_sad_index, j, tid)];
+			sad += sad_cache[tex2D(g_tex_ref_addup_sad_index, i, bidx)];
 		}
-		__syncthreads();//
-		CUDA_3D_Element(int, block_sad_ptr, i, tid, mb_idx) = sad;
+		__syncthreads();
+		CUDA_3D_Element(short, block_sad_ptr, pos, bidx, mb_idx) = sad;
 	}
 }
 
+
+
+//TODO delete debug code
+static void dbg_block_sad(const char* filename, int ref, int mb_loop_max, int pos_loop_max, int blc_idx_loop_max)
+{
+	dbg_begin(filename)
+	{
+		static void *h_block_sad = NULL;
+		int pitch = g_blockSAD[0].pitch;
+		int ysize = g_blockSAD[0].ysize;
+		size_t slice_pitch = pitch*ysize;
+		if(h_block_sad == NULL)
+		{
+			h_block_sad = malloc(slice_pitch * g_max_macroblock_nr);
+		}
+		CUDA_CHECK("copy test block sad\n", 
+				cudaMemcpy(h_block_sad,g_blockSAD[ref].ptr,slice_pitch*g_max_macroblock_nr,cudaMemcpyDeviceToHost));
+
+#define Ele3D(type, base_addr, x, y, z, pitch, ysize) ((type*)((char*)(base_addr) + (pitch)*(ysize)*(z) + (pitch)*(y)))[x]
+		for(int i = 0; i < mb_loop_max; ++i)
+		{
+			dbg("current mb idx = %d\n", i);
+			for(int pos = 0; pos < pos_loop_max; ++pos)
+			{
+				for(int j = 0; j < blc_idx_loop_max; ++j)
+					dbg("%d\t", Ele3D(unsigned short, h_block_sad, pos, j, i, pitch, ysize));
+				dbg("\n");
+			}
+			dbg("\n");
+		}
+	}
+	dbg_end();
+#undef Ele3D
+
+}
+
+static void cuda_addup_large_block(int list,int ref)
+{
+	int sqr_max_points = (int)(sqrt((double)g_max_search_points) + 0.5);
+	dim3 grid_dim(g_max_macroblock_nr, sqr_max_points);
+	dim3 block_dim(41);
+	cuda_addup_large_block_sads<<<grid_dim, block_dim>>>(g_blockSAD[ref]);
+	//dbg_block_sad("block_addup_large.txt", ref, g_max_macroblock_nr, g_max_search_points, 41);
+}
 //thread -> pos
 __global__ void cuda_find_min_mvcost(
 		cudaPitchedPtr block_sad_ptr, 
@@ -591,7 +668,8 @@ __global__ void cuda_find_min_mvcost(
 	//for loop to find min cost & idx
 	cand_x += CUDA_Spiral_Search_X(pos);
 	cand_y += CUDA_Spiral_Search_Y(pos);
-	mcost[tx] = CUDA_MV_COST(lambda_factor, 2, cand_x, cand_y, pred_mv_x, pred_mv_y);
+	mcost[tx] = CUDA_MV_COST(lambda_factor, 2, cand_x, cand_y, pred_mv_x, pred_mv_y) + 
+		CUDA_3D_Element(short, block_sad_ptr, pos, block_AxB_idx, mb_idx);
 	midx[tx] = pos;
 	__syncthreads();
 	int threads = ThreadPerBlock/2;
@@ -620,15 +698,16 @@ __global__ void cuda_find_min_mvcost(
 
 }
 
-
+//TODO 添加参数验证代码
 extern "C" void cuda_validate_arguments()
 {
 	//TODO add code to validate arguments
 }
 
 
+
 //pass
-static void cuda_setup_block4x4(int list, int ref)
+static void cuda_setup_block4x4(int list,int ref)
 {
 	g_tex_ref_imgY_ref.addressMode[0] = g_tex_ref_imgY_ref.addressMode[1] = cudaAddressModeClamp;
 	g_tex_ref_imgY_ref.normalized = false;
@@ -656,40 +735,11 @@ static void cuda_setup_block4x4(int list, int ref)
 
 	//kernel之间是串行执行的
 	cuda_setup4x4_block_sad<<<block_need_rounded,dim_block>>>(g_blockSAD[ref]);
-
-	//TODO 
-	dbg_begin("block_sad_gpu.txt")
-	{
-		static int *h_block_sad = NULL;
-		int pitch = g_blockSAD[0].pitch;
-		int ysize = g_blockSAD[0].ysize;
-		size_t slice_pitch = pitch*ysize;
-		if(h_block_sad == NULL)
-		{
-			h_block_sad = (int*)malloc(slice_pitch * g_max_macroblock_nr);
-		}
-		CUDA_CHECK("copy test block sad\n", 
-				cudaMemcpy(h_block_sad,g_blockSAD[ref].ptr,slice_pitch*g_max_macroblock_nr,cudaMemcpyDeviceToHost));
-
-#define Ele3D(type, base_addr, x, y, z, pitch, ysize) ((type*)((char*)(base_addr) + (pitch)*(ysize)*(z) + (pitch)*(y)))[x]
-		for(int i = 0; i < g_max_macroblock_nr; ++i)
-		{
-			dbg("current mb idx = %4d\n", i);
-			for(int pos = 0; pos < g_max_search_points; ++pos)
-			{
-				for(int j = 0; j < 16; ++j)
-					dbg("%5d ", Ele3D(int, h_block_sad, pos, j, i, pitch, ysize));
-
-				dbg("\n");
-			}
-			dbg("\n");
-		}
-	}
-	dbg_end();
-#undef Ele3D
+	//dbg_block_sad("block_sad_gpu.txt", ref, g_max_macroblock_nr, g_max_search_points, 16);
 }
 
-static void cuda_setup_block4x4_cpu(int list, int ref)
+//TODO delete debug code
+static void cuda_setup_block4x4_and_addup_cpu(int list, int ref)
 {
 	StorablePicture* refpic = listX[list][ref];
 	static int*** blockSad = NULL;
@@ -727,11 +777,11 @@ static void cuda_setup_block4x4_cpu(int list, int ref)
 	{
 		for(int i = 0; i < g_max_macroblock_nr; ++i)
 		{
-			dbg("current mb idx = %4d\n", i);
+			dbg("current mb idx = %d\n", i);
 			for(int pos = 0; pos < g_max_search_points; ++pos)
 			{
 				for(int j = 0; j < 16; ++j)
-					dbg("%5d ", blockSad[i][j][pos]);
+					dbg("%d\t", blockSad[i][j][pos]);
 
 				dbg("\n");
 			}
@@ -779,27 +829,18 @@ cudaFastFullPelBlockMotionSearch(pel_t**   orig_pic,     // <--  not used
 		//整个picture 4x4运动搜索
 		//整个picture 合成大块sad
 		cuda_setup_block4x4(list, ref);
-		cuda_setup_block4x4_cpu(list,ref);
+		cuda_addup_large_block(list,ref);
+		//cuda_setup_block4x4_and_addup_cpu(list,ref);
 		g_search_picture_done[ref] = 1;
 	}
 
-
-		exit(1);
-		int* _d_syn__;
-		int _h_syn__;
-		CUDA_CHECK("test syn", cudaMalloc(&_d_syn__,sizeof(int)));
-		cuda_addup_large_blocks<<<g_max_macroblock_nr,41>>>(g_blockSAD[ref], mb_idx, _d_syn__);
-		CUDA_CHECK("copy test syn search setup done", cudaMemcpy(&_h_syn__,_d_syn__,sizeof(int),cudaMemcpyDeviceToHost));
-		CUDA_CHECK("free test syn search setup done", cudaFree(_d_syn__));
-
 	//获得最小mcost与运动矢量
-	
 	int axb_block_x_in_mb = pic_pix_x - mb_idx % (img->width / 16) * 16;
 	int axb_block_y_in_mb = pic_pix_y - mb_idx / (img->width / 16) * 16;
 	int blk_width = input->blc_size[blocktype][0];
 	int blk_height = input->blc_size[blocktype][1];
 	int block_inner_offset = axb_block_y_in_mb / blk_height * (16/blk_width) + axb_block_x_in_mb / blk_width;
-	
+
 	cuda_find_min_mvcost<<<g_block_need_rounded_for_find_min_sad,ThreadPerBlock>>>(
 			g_blockSAD[ref],
 			lambda_factor,
@@ -827,7 +868,6 @@ cudaFastFullPelBlockMotionSearch(pel_t**   orig_pic,     // <--  not used
 			best_pos = gh_mv_pos[i];
 		}
 	}
-
 	*mv_x = g_mv_mean_of_mb[ref][mb_idx][0] + spiral_search_x[best_pos];
 	*mv_y = g_mv_mean_of_mb[ref][mb_idx][1] + spiral_search_y[best_pos];
 	return min_mcost;
